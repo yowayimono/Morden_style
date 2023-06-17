@@ -33,8 +33,19 @@
 #include <string>
 #include <utility>
 
-
+#define ref(type,name) const type& name 
 #define m(x) std::move(x)
+#define i32 int32_t
+#define i64 int64_t
+#define i128 int128_t
+
+#define ref(type,name) const type& name
+
+#define _mut(type,name) type& name
+
+#define _Str(name) char* name  
+
+
 
 template<typename T, typename... Args>
 std::unique_ptr<T> Box(Args&&... args) {
@@ -51,5 +62,54 @@ std::shared_ptr<T> Arc(Args&&... args) {
 }
 
 
+
+template <typename T>
+class SharedPtr {
+public:
+    SharedPtr(T* ptr = nullptr) : data_(ptr), refCount_(new int(1)) {}
+
+    ~SharedPtr() {
+        if (--(*refCount_) == 0) {
+            delete data_;
+            delete refCount_;
+        }
+    }
+
+    SharedPtr(const SharedPtr& other) : data_(other.data_), refCount_(other.refCount_) {
+        ++(*refCount_);
+    }
+
+    SharedPtr& operator=(const SharedPtr& other) {
+        if (this != &other) {
+            if (--(*refCount_) == 0) {
+                delete data_;
+                delete refCount_;
+            }
+            data_ = other.data_;
+            refCount_ = other.refCount_;
+            ++(*refCount_);
+        }
+        return *this;
+    }
+
+    T& operator*() const {
+        return *data_;
+    }
+
+    T* operator->() const {
+        return data_;
+    }
+
+private:
+    T* data_;
+    int* refCount_;
+};
+
+
+
+template <typename T, typename... Args>
+SharedPtr<T> Rc(Args&&... args) {
+    return SharedPtr<T>(new T(std::forward<Args>(args)...));
+}
 
 #endif
